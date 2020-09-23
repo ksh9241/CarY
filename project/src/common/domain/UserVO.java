@@ -18,6 +18,7 @@ public class UserVO implements Serializable {
 	private String member_name;
 	private String member_phone;
 	private java.sql.Date member_date;
+	sd
 	
 	public UserVO() {
 		System.out.println("UserVO 생성");
