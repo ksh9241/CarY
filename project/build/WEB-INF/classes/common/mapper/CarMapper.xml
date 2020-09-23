@@ -1,0 +1,516 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="common.mapper.CarMapper">
+
+	<!-- 브랜드 찾는 select -->
+	
+		<select id="brandSearchList" parameterType="int" resultType="Category">
+			select b_name from Brand where b_code like '${value}%'
+		</select>
+	
+	<!-- 모델 찾는 select -->
+	
+		<select id="modelSearchList" parameterType="int" resultType="Category">
+			select m_name from model where b_code = #{model}
+		</select>
+	
+	<!-- 세부모델 찾는 select -->
+	
+		<select id="dmodelSearchList" parameterType="string" resultType="Category">
+			select * from model m join detailmodel d on m.m_code=d.m_code where m_name= #{value}
+		</select>
+	
+	<!-- 차량 판매글 등록 -->
+	
+		<insert id="carInsert" parameterType="Carinfo">
+			<selectKey keyProperty="idx" order="BEFORE" resultType="int">
+				select carinfo_seq.nextval from dual
+			</selectKey>
+			insert into carinfo (idx, car_num, car_size, b_code, m_code, s_code, car_fuel, car_age,
+			 car_cc, car_seat, car_gear, car_color, car_km, car_price, car_test, car_intro, member_idx, car_img1, car_img2, car_img3, car_date)
+			 values (#{idx}, #{car_num}, #{car_size}, #{b_code}, #{m_code}, #{s_code}, #{car_fuel}, #{car_age}, #{car_cc}, #{car_seat}, #{car_gear},
+			    #{car_color}, #{car_km}, #{car_price}, #{car_test, jdbcType=VARCHAR}, #{car_intro}, #{member_idx}, #{car_img1, jdbcType=VARCHAR}, #{car_img2, jdbcType=VARCHAR}, #{car_img3, jdbcType=VARCHAR}, sysdate)
+		</insert>
+
+	<!-- 세부모델 name 으로 세부모델코드, 모델코드, 브랜드코드 찾기 -->
+	
+		<select id="searchByDemodel" parameterType="string"
+			resultType="Category">
+			select * from carinfo_view where s_name='${value}'
+		</select>
+	
+	<!-- 차량 판매글 옵션 정보 -->
+	
+		<insert id="insertOptInfo" parameterType="HashMap" >
+			insert into INFO_OPT_REL values (${idx}, ${opt})
+		</insert>
+
+<!-- 세환 ======================================================================== -->
+<!-- 총 국내 차량 수 가져오기 -->
+   <select id="getTotalCount" resultType="_int">
+      select count(idx) cnt from carinfo where b_code between 10 and 19
+   </select>
+   
+   <!-- 총 해외 차량 수 가져오기 -->
+   <select id="getO_TotalCount" resultType="_int">
+      select count(idx) cnt from carinfo where b_code between 20 and 29
+   </select>
+   
+   <!-- 검색한 차량 수 가져오기 -->
+   <select id="getSearchCount" resultType="int" parameterType="list">
+   		select count(idx) from carinfo where s_code in
+   		<foreach collection="list" item="s_code" index="index" open="(" close=")" separator=",">
+   			#{s_code}
+   		</foreach>
+   </select>
+   
+   <!-- 이름으로 검색한 차량명 세부코드 가져오기 -->
+   <select id="changeCode" resultType="int" parameterType="string">
+   		select s_code from detailmodel where s_name like '%${search}%'
+   </select>
+   
+    <!-- 이름으로 검색된 차량만 조회하기 -->
+   <select id="searchCarList" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number() 
+   		over(order by idx desc) rn,carinfo_view2.* from carinfo_view2
+   		<where> 
+   		<if test="search!=null">
+   		s_code in
+   		<foreach collection="search" item="search" index="index" open="(" close=")" separator=",">
+   			#{search}
+   		</foreach>
+   		</if>
+   		</where>
+   		 )where rn between #{start} and #{end}
+   </select>
+   
+   <!-- 차량 상세정보 가져오기 -->
+   <select id="selectCarDetail" resultType="Carinfo">
+      select * from carinfo_view2 where idx=#{idx}
+   </select>
+   
+   <!-- 총 국내 차량 조회하기 -->
+   <!-- <select id="listCar_old" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number() over(order by idx desc) rn,carinfo.* from carinfo where b_code between 10 and 19)
+   		 where rn between #{start} and #{end}
+   </select> -->
+   
+   <select id="listCar" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number() over(order by idx desc) rn,carinfo_view2.* from carinfo_view2 where b_code between 10 and 19)
+   		 where rn between #{start} and #{end}
+   </select>
+   
+   <!-- 총 해외 차량 조회하기 -->
+   <!-- <select id="O_listCar_old" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number() over(order by idx desc) rn,carinfo.* from carinfo where b_code between 20 and 29)
+   		 where rn between #{start} and #{end}
+   </select> -->
+   <select id="O_listCar" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number() over(order by idx desc) rn,carinfo_view2.* from carinfo_view2 where b_code between 20 and 29)
+   		 where rn between #{start} and #{end}
+   </select>
+   
+   <!-- 선택된 옵션이 있는 CarInfo idx값 조회하기 -->
+   <select id="carOptionList" resultType="String" parameterType="list">
+   		select distinct(idx) from info_opt_rel
+   		<where>
+   			opt_idx in
+   			<foreach collection="list" item="idx" index="index" open="(" close=")" separator=",">
+   				#{idx}
+   			</foreach>
+   		</where>
+   </select>
+   
+   <!-- idx값으로 option_view 조회하기 -->
+   <select id="selectOption" resultType="common.domain.OptionVO" parameterType="string">
+   		select * from option_view where idx=#{idx}
+   </select>
+   
+   
+   <!-- 사이드바로 검색된 국산 차량 개수 조회하기 -->
+   <select id="getSideOptCount" resultType="int" parameterType="HashMap">
+   		select count(idx) from carinfo 
+   		<where>
+   		b_code between 10 and 19
+   			<if test="car_size!=null">
+   				and car_size in
+   				<foreach collection="car_size" item="size" index="index" open="(" close=")" separator=",">
+   					#{size}
+   				</foreach>
+   				
+   			</if>
+   			<if test="b_code!=null">
+   				and b_code = #{b_code}
+   			</if>
+   			<if test="m_code!=null">
+   				and m_code = #{m_code}
+   			</if>
+   			<if test="s_code!=null">
+   				and s_code = #{s_code}
+   			</if>
+   			<if test="carAge_min!=null or carAge_max!=null">
+   				and car_age between #{carAge_min} and #{carAge_max}
+   			</if>
+   			<if test="car_km_min!=null or car_km_max!=null">
+   				and car_km between #{car_km_min} and #{car_km_max}
+   			</if>
+   			<if test="car_price_min!=null or car_price_max!=null">
+   				and car_price between #{car_price_min} and #{car_price_max}
+   			</if>
+   			<if test="car_color!=null">
+   				and car_color in
+   				<foreach collection="car_color" item="color" index="index" open="(" close=")" separator=",">
+   					#{color}
+   				</foreach>
+   			</if>
+   			<if test="car_fuel!=null">
+   				and car_fuel in
+   				<foreach collection="car_fuel" item="fuel" index="index" open="(" close=")" separator=",">
+   					#{fuel}
+   				</foreach>
+   			</if>
+   			<if test="car_gear!=null">
+   				and car_gear in
+   				<foreach collection="car_gear" item="gear" index="index" open="(" close=")" separator=",">
+   					#{gear}
+   				</foreach>
+   			</if>
+   			<if test="car_test!=null">
+   				and car_test = #{car_test}
+   			</if>
+   			<if test="car_seat!=null">
+   				and car_seat in
+   				<foreach collection="car_seat" item="seat" index="index" open="(" close=")" separator=",">
+   					#{seat}
+   				</foreach>
+   			</if>
+   			<if test="option_idx!=null and option_idx.size!=0"> 
+   			 	and idx in
+   			 	<foreach collection="option_idx" item="idx" index="index" open="(" close=")" separator=",">
+   			 		#{idx}
+   			 	</foreach>
+   			 </if>
+   			
+   		</where> 
+   </select>
+   
+   <!-- 사이드바로 검색된 해외차량 개수 조회하기 -->
+   <select id="getO_SideOptCount" resultType="int" parameterType="HashMap">
+   		select count(idx) from carinfo 
+   		<where>
+   		b_code between 20 and 29
+   			<if test="car_size!=null">
+   				and car_size in
+   				<foreach collection="car_size" item="size" index="index" open="(" close=")" separator=",">
+   					#{size}
+   				</foreach>
+   			</if>
+   			<if test="b_code!=null">
+   				and b_code = #{b_code}
+   			</if>
+   			<if test="m_code!=null">
+   				and m_code = #{m_code}
+   			</if>
+   			<if test="s_code!=null">
+   				and s_code = #{s_code}
+   			</if>
+   				and car_age between #{carAge_min} and #{carAge_max}
+   			
+   				and car_km between #{car_km_min} and #{car_km_max}
+   			
+   				and car_price between #{car_price_min} and #{car_price_max}
+   			
+   			<if test="car_color!=null">
+   				and car_color in
+   				<foreach collection="car_color" item="color" index="index" open="(" close=")" separator=",">
+   					#{color}
+   				</foreach>
+   			</if>
+   			<if test="car_fuel!=null">
+   				and car_fuel in
+   				<foreach collection="car_fuel" item="fuel" index="index" open="(" close=")" separator=",">
+   					#{fuel}
+   				</foreach>
+   			</if>
+   			<if test="car_gear!=null">
+   				and car_gear in
+   				<foreach collection="car_gear" item="gear" index="index" open="(" close=")" separator=",">
+   					#{gear}
+   				</foreach>
+   			</if>
+   			<if test="car_test!=null">
+   				and car_test = #{car_test}
+   			</if>
+   			<if test="car_seat!=null">
+   				and car_seat in
+   				<foreach collection="car_seat" item="seat" index="index" open="(" close=")" separator=",">
+   					#{seat}
+   				</foreach>
+   			</if>
+   			<if test="option_idx!=null and option_idx.size!=0"> 
+   			 	and idx in
+   			 	<foreach collection="option_idx" item="idx" index="index" open="(" close=")" separator=",">
+   			 		#{idx}
+   			 	</foreach>
+   			 </if>
+   		</where> 
+   </select>
+   
+  
+   
+   <!-- 사이드바로 검색된 국산 차량만 조회하기 -->
+   <select id="carSideOptList" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number()
+   		over(order by idx desc) rn,carinfo_view2.* from carinfo_view2 
+   		where
+   		b_code between 10 and 19
+   			<if test="car_size!=null">
+   				and car_size in
+   				<foreach collection="car_size" item="size" index="index" open="(" close=")" separator=",">
+   					#{size}
+   				</foreach>
+   				
+   			</if>
+   			
+   			<if test="b_code!=null">
+   				and b_code = #{b_code}
+   			</if>
+   			
+   			<if test="m_code!=null">
+   				and m_code = #{m_code}
+   			</if>
+   			
+   			<if test="s_code!=null">
+   				and s_code = #{s_code}
+   			</if>
+   			
+   			<if test="carAge_min!=null or carAge_max!=null">
+   				and car_age between #{carAge_min} and #{carAge_max}
+   			</if>
+   			<if test="car_km_min!=null or car_km_max!=null">
+   				and car_km between #{car_km_min} and #{car_km_max}
+   			</if>
+   			<if test="car_price_min!=null or car_price_max!=null">
+   				and car_price between #{car_price_min} and #{car_price_max}
+   			</if>
+   			<if test="car_color!=null">
+   				and car_color in
+   				<foreach collection="car_color" item="color" index="index" open="(" close=")" separator=",">
+   					#{color}
+   				</foreach>
+   			</if>
+   			<if test="car_fuel!=null">
+   				and car_fuel in
+   				<foreach collection="car_fuel" item="fuel" index="index" open="(" close=")" separator=",">
+   					#{fuel}
+   				</foreach>
+   			</if>
+   			<if test="car_gear!=null">
+   				and car_gear in
+   				<foreach collection="car_gear" item="gear" index="index" open="(" close=")" separator=",">
+   					#{gear}
+   				</foreach>
+   			</if>
+   			<if test="car_test!=null">
+   				and car_test = #{car_test}
+   			</if>
+   			<if test="car_seat!=null">
+   				and car_seat in
+   				<foreach collection="car_seat" item="seat" index="index" open="(" close=")" separator=",">
+   					#{seat}
+   				</foreach>
+   			</if>
+   			<if test="option_idx!=null and option_idx.size!=0"> 
+   			 	and idx in
+   			 	<foreach collection="option_idx" item="idx" index="index" open="(" close=")" separator=",">
+   			 		#{idx}
+   			 	</foreach>
+   			 </if>
+   		<!-- where car_size = #{carSize}) -->
+   		)where rn between #{start} and #{end}
+   </select>
+   
+     <!-- 차량사이즈로 검색된 해외 차량만 조회하기 -->
+   <select id="O_carSideOptList" resultType="Carinfo" parameterType="HashMap">
+   		select * from(select row_number()
+   		over(order by idx desc) rn,carinfo_view2.* from carinfo_view2
+   		<where>
+   		b_code between 20 and 29
+   			<if test="car_size!=null">
+   				and car_size in
+   				<foreach collection="car_size" item="size" index="index" open="(" close=")" separator=",">
+   					#{size}
+   				</foreach>
+   			</if>
+   			
+   			<if test="b_code!=null">
+   				and b_code = #{b_code}
+   			</if>
+   			<if test="m_code!=null">
+   				and m_code = #{m_code}
+   			</if>
+   			<if test="s_code!=null">
+   				and s_code = #{s_code}
+   			</if>
+   			
+   			
+   				and car_age between #{carAge_min} and #{carAge_max}
+   			
+   			
+   				and car_km between #{car_km_min} and #{car_km_max}
+   			
+   			
+   				and car_price between #{car_price_min} and #{car_price_max}
+   			
+   			<if test="car_color!=null">
+   				and car_color in
+   				<foreach collection="car_color" item="color" index="index" open="(" close=")" separator=",">
+   					#{color}
+   				</foreach>
+   			</if>
+   			<if test="car_fuel!=null">
+   				and car_fuel in
+   				<foreach collection="car_fuel" item="fuel" index="index" open="(" close=")" separator=",">
+   					#{fuel}
+   				</foreach>
+   			</if>
+   			<if test="car_gear!=null">
+   				and car_gear in
+   				<foreach collection="car_gear" item="gear" index="index" open="(" close=")" separator=",">
+   					#{gear}
+   				</foreach>
+   			</if>
+   			<if test="car_test!=null">
+   				and car_test = #{car_test}
+   			</if>
+   			<if test="car_seat!=null">
+   				and car_seat in
+   				<foreach collection="car_seat" item="seat" index="index" open="(" close=")" separator=",">
+   					#{seat}
+   				</foreach>
+   			</if>
+   			<if test="option_idx!=null and option_idx.size!=0"> 
+   			 	and idx in
+   			 	<foreach collection="option_idx" item="idx" index="index" open="(" close=")" separator=",">
+   			 		#{idx}
+   			 	</foreach>
+   			 </if>
+   			
+   		</where>
+   		<!-- where car_size = #{carSize}) -->
+   		)where rn between #{start} and #{end}
+   </select>
+   
+   <select id="searchModelList" resultType="Category" parameterType="string">
+   		select * from model where b_code = #{b_code}
+   </select>
+   
+   <select id="searchDetailModelList" resultType="Category" parameterType="string">
+   		select * from detailModel where m_code = #{m_code}
+   </select>
+	
+	
+<!-- ================== 주한 ============================ -->
+	
+	<!-- 시세페이지에서 쓰는 조건별 검색 -->
+	<select id="carSearchByOption" resultType="Carinfo" parameterType="HashMap">
+		select * from
+			(select rownum rn, al.* from 
+				(select * from carinfo 
+				<where> 
+					<if test="b_code != null">
+						(b_code = #{b_code}) 
+						and
+					</if>
+				 
+					<if test="s_code != null">
+						(s_code = #{s_code}) 
+						and
+					</if>
+					
+					<if test="m_code != null">
+						(m_code = #{m_code}) 
+						and
+					</if>
+				
+					<if test="car_color != null">
+						(car_color in
+							<foreach collection="car_color" item="color" separator="," open="(" close=")">
+								#{color}
+							</foreach> 
+						) 
+						and
+					</if>
+					
+					<if test="car_fuel != null">
+						(car_fuel in
+							<foreach collection="car_fuel" item="fuel" separator="," open="(" close=")">
+								#{fuel}
+							</foreach> 
+						) 
+						and
+					</if>
+					
+					<if test="car_gear != null">
+						(car_gear in
+							<foreach collection="car_gear" item="gear" separator="," open="(" close=")">
+								#{gear}
+							</foreach> 
+						) 
+						and
+					</if>
+					
+					<if test="car_seat != null">
+						(car_seat in
+							<foreach collection="car_seat" item="seat" separator="," open="(" close=")">
+								#{seat}
+							</foreach> 
+						) 
+						and
+					</if>
+					<!-- (idx in('','')) 자 여기서 option 리스트 뽑아와서 리스트로 출력해주고 and-->
+					
+					<if test="idx_by_opt != null">
+						(idx in
+							<foreach collection="idx_by_opt" item="idx_num" separator="," open="(" close=")">
+								#{idx_num}
+							</foreach> 
+						) 
+						and
+					</if>
+				
+				<!--
+				(car_test != null) //테스트는 어떻게 할지 생각해보자
+				and
+				 -->
+				(car_km between #{car_distance_min} and #{car_distance_max})
+				</where>
+			<if test="start == null and end == null">
+				order by car_price asc 
+			) al)
+			</if>
+			<if test="start != null and end != null">
+				order by car_date desc
+			) al)
+				where rn between #{start} and #{end}
+			</if>
+	</select>
+	
+	<select id="findCarsByOpts" resultType="int" parameterType="list">
+		select distinct(idx) from info_opt_rel 
+		<where>
+			opt_idx in 
+			<foreach collection="list" item="opt" open="(" separator="," close=")">
+				#{opt}
+			</foreach>
+		</where>
+	</select>
+	
+	<select id="findRel" parameterType="Hashmap" resultType="_int">
+		select count(*) from info_opt_rel where idx = #{idx} and opt_idx = #{opt_idx}
+	</select>
+   
+</mapper>
+
